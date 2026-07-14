@@ -26,7 +26,13 @@ connectCloudinary();
 
 // Middlewares
 app.use(express.json());
-app.use(cors());
+// app.use(cors());
+app.use(
+  cors({
+    origin: ["https://prescripto-community-app.vercel.app/"],
+    credentials: true,
+  }),
+);
 
 // Static folder serving for local image uploads
 // app.use("/uploads", express.static(path.resolve(uploadsDir)));
