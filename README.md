@@ -51,7 +51,6 @@ CLOUDINARY_API_KEY=""
 CLOUDINARY_SECRET_KEY=""
 ```
 
-*Note: If you leave the Cloudinary keys empty, profile images will automatically fall back to local disk storage.*
 
 ---
 
