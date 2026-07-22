@@ -7,18 +7,10 @@ import adminRouter from "./routes/adminRoute.js";
 import doctorRouter from "./routes/doctorRoute.js";
 import userRouter from "./routes/userRoute.js";
 import paymentRouter from "./routes/paymentRoute.js";
-// import fs from "fs";
-// import path from "path";
 
 // App Config
 const app = express();
 const port = process.env.PORT || 4000;
-
-// Ensure local uploads directory exists
-// const uploadsDir = "./uploads";
-// if (!fs.existsSync(uploadsDir)) {
-//   fs.mkdirSync(uploadsDir, { recursive: true });
-// }
 
 // Connect to Services
 connectDB();
@@ -26,16 +18,16 @@ connectCloudinary();
 
 // Middlewares
 app.use(express.json());
-// app.use(cors());
 app.use(
   cors({
-    origin: ["https://prescripto-community-app.vercel.app/"],
+    // origin: ["https://prescripto-community-app.vercel.app"],
+    origin: [
+      "http://localhost:5173",
+      "https://prescripto-community-app.vercel.app"
+    ],
     credentials: true,
   }),
 );
-
-// Static folder serving for local image uploads
-// app.use("/uploads", express.static(path.resolve(uploadsDir)));
 
 // API Endpoints
 app.use("/api/admin", adminRouter);
