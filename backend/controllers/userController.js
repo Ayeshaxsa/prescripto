@@ -5,7 +5,6 @@ import jwt from "jsonwebtoken";
 import { v2 as cloudinary } from "cloudinary";
 import doctorModel from "../models/doctorModel.js";
 import appointmentModel from "../models/appointmentModel.js";
-import fs from "fs";
 
 // API to register user
 const registerUser = async (req, res) => {
@@ -17,17 +16,26 @@ const registerUser = async (req, res) => {
     }
 
     if (!validator.isEmail(email)) {
-      return res.json({ success: false, message: "Please enter a valid email" });
+      return res.json({
+        success: false,
+        message: "Please enter a valid email",
+      });
     }
 
     if (password.length < 8) {
-      return res.json({ success: false, message: "Please enter a strong password (min 8 characters)" });
+      return res.json({
+        success: false,
+        message: "Please enter a strong password (min 8 characters)",
+      });
     }
 
     // check if user already exists
     const userExists = await userModel.findOne({ email });
     if (userExists) {
-      return res.json({ success: false, message: "User already exists with this email" });
+      return res.json({
+        success: false,
+        message: "User already exists with this email",
+      });
     }
 
     // hash password
@@ -79,7 +87,8 @@ const loginUser = async (req, res) => {
 // API to get user profile data
 const getProfile = async (req, res) => {
   try {
-    const { userId } = req.body;
+    // const { userId } = req.body;
+    const userId = req.userId;
     const userData = await userModel.findById(userId).select("-password");
 
     res.json({ success: true, userData });
@@ -92,12 +101,14 @@ const getProfile = async (req, res) => {
 // API to update user profile
 const updateProfile = async (req, res) => {
   try {
-    const { userId, name, phone, address, gender, dob } = req.body;
+    // const { userId, name, phone, address, gender, dob } = req.body;
+    const { name, phone, address, gender, dob } = req.body;
+    const userId = req.userId;
     const imageFile = req.file;
 
-    if (!name || !phone || !gender || !dob) {
-      return res.json({ success: false, message: "Missing Details" });
-    }
+    // if (!name || !phone || !gender || !dob) {
+    //   return res.json({ success: false, message: "Missing Details" });
+    // }
 
     let parsedAddress = address;
     if (typeof address === "string") {
@@ -107,35 +118,71 @@ const updateProfile = async (req, res) => {
         parsedAddress = { line1: address, line2: "" };
       }
     }
-
+    console.log("Updating user:", userId);
+    console.log("Data:", { name, phone, address: parsedAddress, gender, dob });
     // update details
-    await userModel.findByIdAndUpdate(userId, {
-      name,
-      phone,
-      address: parsedAddress,
-      gender,
-      dob,
-    });
+    // await userModel.findByIdAndUpdate(userId, {
+    //   name,
+    //   phone,
+    //   address: parsedAddress,
+    //   gender,
+    //   dob,
+    // });
+    const updatedUser = await userModel.findByIdAndUpdate(
+      userId,
+      {
+        name,
+        phone,
+        address: parsedAddress,
+        gender,
+        dob,
+      },
+      {
+        new: true,
+        runValidators: true,
+      },
+    );
+
+    console.log("Updated User:", updatedUser);
+
+    if (!updatedUser) {
+      return res.json({
+        success: false,
+        message: "User not found",
+      });
+    }
 
     if (imageFile) {
       // upload image to cloudinary or local static serving fallback
       let imageUrl = "";
-      if (process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_SECRET_KEY && process.env.CLOUDINARY_NAME) {
+      if (
+        process.env.CLOUDINARY_API_KEY &&
+        process.env.CLOUDINARY_SECRET_KEY &&
+        process.env.CLOUDINARY_NAME
+      ) {
         try {
-          const imageUpload = await cloudinary.uploader.upload(imageFile.path, { resource_type: "image" });
-          imageUrl = imageUpload.secure_url;
-          // Clean up local temp file
-          fs.unlink(imageFile.path, (err) => {
-            if (err) console.error("Error deleting local file:", err);
+          const imageUpload = await new Promise((resolve, reject) => {
+            cloudinary.uploader
+              .upload_stream({ resource_type: "image" }, (error, result) => {
+                if (error) {
+                  reject(error);
+                } else {
+                  resolve(result);
+                }
+              })
+              .end(imageFile.buffer);
           });
-        } catch (cloudinaryErr) {
-          console.warn("Cloudinary upload failed, falling back to local file path.", cloudinaryErr);
-          imageUrl = `${req.protocol}://${req.get("host")}/uploads/${imageFile.filename}`;
-        }
-      } else {
-        imageUrl = `${req.protocol}://${req.get("host")}/uploads/${imageFile.filename}`;
-      }
 
+          imageUrl = imageUpload.secure_url;
+          
+        } catch (cloudinaryErr) {
+          console.error("Cloudinary upload failed:", cloudinaryErr);
+          return res.json({
+            success: false,
+            message: "Image upload failed",
+          });
+        }
+      }
       await userModel.findByIdAndUpdate(userId, { image: imageUrl });
     }
 
@@ -149,13 +196,10 @@ const updateProfile = async (req, res) => {
 // API to book appointment
 const bookAppointment = async (req, res) => {
   try {
-    const { userId, docId, slotDate, slotTime } = req.body;
-
-    console.log("USER ID:", userId);
-    console.log("DOC ID:", docId);
-    console.log("DATE:", slotDate);
-    console.log("TIME:", slotTime);
-
+    // const { userId, docId, slotDate, slotTime } = req.body;
+    const { docId, slotDate, slotTime } = req.body;
+    const userId = req.userId;
+    
     if (!userId) {
       return res.json({
         success: false,
@@ -169,7 +213,10 @@ const bookAppointment = async (req, res) => {
     }
 
     if (!docData.available) {
-      return res.json({ success: false, message: "Doctor is not available currently" });
+      return res.json({
+        success: false,
+        message: "Doctor is not available currently",
+      });
     }
 
     let slots_booked = docData.slots_booked || {};
@@ -242,7 +289,8 @@ const bookAppointment = async (req, res) => {
 // API to get user appointments
 const listAppointment = async (req, res) => {
   try {
-    const { userId } = req.body;
+    // const { userId } = req.body;
+    const userId = req.userId;
     const appointments = await appointmentModel.find({ userId });
 
     res.json({ success: true, appointments });
@@ -255,7 +303,9 @@ const listAppointment = async (req, res) => {
 // API to cancel appointment
 const cancelAppointment = async (req, res) => {
   try {
-    const { userId, appointmentId } = req.body;
+    // const { userId, appointmentId } = req.body;
+    const { appointmentId } = req.body;
+    const userId = req.userId;
 
     const appointmentData = await appointmentModel.findById(appointmentId);
 
@@ -268,13 +318,13 @@ const cancelAppointment = async (req, res) => {
     }
 
     // verify authorization
-    if (appointmentData.userId !== userId) {
+    // if (appointmentData.userId !== userId) {
+    if (appointmentData.userId.toString() !== userId.toString()) {
       return res.json({ success: false, message: "Unauthorized Action" });
     }
 
     await appointmentModel.findByIdAndUpdate(appointmentId, {
       status: "cancelled",
-      razorpayPaymentId: razorpay_payment_id,
     });
 
     // Release slot from doctor's booked slots list
@@ -283,7 +333,9 @@ const cancelAppointment = async (req, res) => {
 
     if (docData && docData.slots_booked && docData.slots_booked[slotDate]) {
       let slots_booked = docData.slots_booked;
-      slots_booked[slotDate] = slots_booked[slotDate].filter((e) => e !== slotTime);
+      slots_booked[slotDate] = slots_booked[slotDate].filter(
+        (e) => e !== slotTime,
+      );
       await doctorModel.findByIdAndUpdate(docId, { slots_booked });
     }
 

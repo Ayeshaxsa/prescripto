@@ -6,7 +6,8 @@ export const AppContext = createContext();
 
 const AppContextProvider = (props) => {
   const currencySymbol = "$";
-  const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
+  const backendUrl =
+    import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
 
   const [doctors, setDoctors] = useState([]);
   const [token, setToken] = useState(localStorage.getItem("token") || "");
@@ -15,7 +16,8 @@ const AppContextProvider = (props) => {
   // Fetch all doctors from public API
   const getDoctorsData = async () => {
     try {
-      const { data } = await axios.get(`${backendUrl}/api/user/all-doctors`);
+      // const { data } = await axios.get(`${backendUrl}/api/user/all-doctors`);
+      const { data } = await axios.get(`${backendUrl}/api/doctor/all-doctors`);
       if (data.success) {
         setDoctors(data.doctors);
       } else {
@@ -30,11 +32,33 @@ const AppContextProvider = (props) => {
   // Load User Profile Data
   const loadUserProfileData = async () => {
     try {
-      const { data } = await axios.get(`${backendUrl}/api/user/get-profile`, {
+      // const { data } = await axios.get(`${backendUrl}/api/user/get-profile`, {
+      const { data } = await axios.get(`${backendUrl}/api/user/profile`, {
         headers: { token },
       });
+      console.log("PROFILE DATA:", data.userData); // add this
       if (data.success) {
         setUserData(data.userData);
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error(error.message);
+    }
+  };
+
+  // Update User Profile
+  const updateUserProfile = async (formData) => {
+    try {
+      const { data } = await axios.put(
+        `${backendUrl}/api/user/update-profile`,
+        formData,
+        { headers: { token } },
+      );
+      if (data.success) {
+        toast.success(data.message);
+        loadUserProfileData();
       } else {
         toast.error(data.message);
       }
@@ -68,7 +92,9 @@ const AppContextProvider = (props) => {
     backendUrl,
   };
 
-  return <AppContext.Provider value={value}>{props.children}</AppContext.Provider>;
+  return (
+    <AppContext.Provider value={value}>{props.children}</AppContext.Provider>
+  );
 };
 
 export default AppContextProvider;

@@ -5,33 +5,61 @@ import doctorModel from "../models/doctorModel.js";
 import jwt from "jsonwebtoken";
 import appointmentModel from "../models/appointmentModel.js";
 import userModel from "../models/userModel.js";
-import fs from "fs";
 
 // API for adding doctor
 const addDoctor = async (req, res) => {
   try {
-    const { name, email, password, specialty, degree, experience, about, fees, address } = req.body;
+    const {
+      name,
+      email,
+      password,
+      specialty,
+      degree,
+      experience,
+      about,
+      fees,
+      address,
+    } = req.body;
     const imageFile = req.file;
 
     // checking for all data to add doctor
-    if (!name || !email || !password || !specialty || !degree || !experience || !about || !fees || !address) {
+    if (
+      !name ||
+      !email ||
+      !password ||
+      !specialty ||
+      !degree ||
+      !experience ||
+      !about ||
+      !fees ||
+      !address
+    ) {
       return res.json({ success: false, message: "Missing Details" });
     }
 
     // validating email format
     if (!validator.isEmail(email)) {
-      return res.json({ success: false, message: "Please enter a valid email" });
+      return res.json({
+        success: false,
+        message: "Please enter a valid email",
+      });
     }
 
     // validating strong password
     if (password.length < 8) {
-      return res.json({ success: false, message: "Please enter a strong password (min 8 characters)" });
+      return res.json({
+        success: false,
+        message: "Please enter a strong password (min 8 characters)",
+      });
     }
 
     // check if doctor email already exists
     const doctorExists = await doctorModel.findOne({ email });
     if (doctorExists) {
-      return res.json({ success: false, message: "Doctor already exists with this email" });
+      return res.json({
+        success: false,
+        message: "Doctor already exists with this email",
+      });
     }
 
     if (!imageFile) {
@@ -42,25 +70,31 @@ const addDoctor = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // upload image to cloudinary or fallback to local storage
+    // Upload doctor image to Cloudinary
     let imageUrl = "";
-    if (process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_SECRET_KEY && process.env.CLOUDINARY_NAME) {
-      try {
-        const imageUpload = await cloudinary.uploader.upload(imageFile.path, { resource_type: "image" });
-        imageUrl = imageUpload.secure_url;
-        // Clean up local file after uploading to Cloudinary
-        fs.unlink(imageFile.path, (err) => {
-          if (err) console.error("Error deleting local file after Cloudinary upload:", err);
-        });
-      } catch (cloudinaryErr) {
-        console.warn("Cloudinary upload failed, falling back to local file path.", cloudinaryErr);
-        imageUrl = `${req.protocol}://${req.get("host")}/uploads/${imageFile.filename}`;
-      }
+
+    try {
+      const imageUpload = await new Promise((resolve, reject) => {
+        cloudinary.uploader
+          .upload_stream({ resource_type: "image" }, (error, result) => {
+            if (error) {
+              reject(error);
+            } else {
+              resolve(result);
+            }
+          })
+          .end(imageFile.buffer);
+      });
+
+      imageUrl = imageUpload.secure_url;
+    } catch (cloudinaryErr) {
+      console.error("Cloudinary upload failed:", cloudinaryErr);
+
+      return res.json({
+        success: false,
+        message: "Image upload failed",
+      });
     }
-    //  else {
-    //   // Local storage fallback URL
-    //   imageUrl = `${req.protocol}://${req.get("host")}/uploads/${imageFile.filename}`;
-    // }
 
     // parse address
     let parsedAddress = address;
@@ -204,5 +238,214 @@ const changeAvailability = async (req, res) => {
   }
 };
 
-export { addDoctor, loginAdmin, allDoctors, appointmentsAdmin, appointmentCancel, adminDashboard, changeAvailability };
+const removeDoctor = async (req, res) => {
+  try {
+    const { docId } = req.body;
+
+    const doctor = await doctorModel.findById(docId);
+
+    if (!doctor) {
+      return res.json({
+        success: false,
+        message: "Doctor not found",
+      });
+    }
+
+    await doctorModel.findByIdAndDelete(docId);
+
+    res.json({
+      success: true,
+      message: "Doctor removed successfully",
+    });
+  } catch (error) {
+    console.log(error);
+    res.json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// const updateDoctor = async (req, res) => {
+//   try {
+//     const { docId, name, specialty, degree, experience, about, fees, address } =
+//       req.body;
+
+//     const doctor = await doctorModel.findById(docId);
+
+//     if (!doctor) {
+//       return res.json({
+//         success: false,
+//         message: "Doctor not found",
+//       });
+//     }
+
+//     let parsedAddress = address;
+
+//     if (typeof address === "string") {
+//       try {
+//         parsedAddress = JSON.parse(address);
+//       } catch (error) {
+//         parsedAddress = {
+//           line1: address,
+//           line2: "",
+//         };
+//       }
+//     }
+
+//     const updatedDoctor = await doctorModel.findByIdAndUpdate(
+//       docId,
+//       {
+//         name,
+//         specialty,
+//         degree,
+//         experience,
+//         about,
+//         fees: Number(fees),
+//         address: parsedAddress,
+//       },
+//       {
+//         new: true,
+//       },
+//     );
+
+//     res.json({
+//       success: true,
+//       message: "Doctor updated successfully",
+//       doctor: updatedDoctor,
+//     });
+//   } catch (error) {
+//     console.log(error);
+
+//     res.json({
+//       success: false,
+//       message: error.message,
+//     });
+//   }
+// };
+
+const getDoctorById = async (req, res) => {
+  try {
+    const doctor = await doctorModel.findById(req.params.id);
+
+    if (!doctor) {
+      return res.json({
+        success: false,
+        message: "Doctor not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      doctor,
+    });
+  } catch (error) {
+    console.log(error);
+    res.json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// const updateDoctor = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+
+//     const updatedDoctor = await doctorModel.findByIdAndUpdate(
+//       id,
+//       {
+//         name: req.body.name,
+//         specialty: req.body.specialty,
+//         degree: req.body.degree,
+//         experience: req.body.experience,
+//         fees: req.body.fees,
+//         about: req.body.about,
+//         address: JSON.parse(req.body.address),
+//       },
+//       { new: true },
+//     );
+
+//     res.json({
+//       success: true,
+//       message: "Doctor Updated",
+//       doctor: updatedDoctor,
+//     });
+//   } catch (error) {
+//     console.log(error);
+//     res.json({
+//       success: false,
+//       message: error.message,
+//     });
+//   }
+// };
+
+const updateDoctor = async (req, res) => {
+  try {
+    const { docId, name, specialty, degree, experience, about, fees, address } =
+      req.body;
+
+    const doctor = await doctorModel.findById(docId);
+
+    if (!doctor) {
+      return res.json({
+        success: false,
+        message: "Doctor not found",
+      });
+    }
+
+    let parsedAddress = address;
+
+    if (typeof address === "string") {
+      try {
+        parsedAddress = JSON.parse(address);
+      } catch {
+        parsedAddress = {
+          line1: address,
+          line2: "",
+        };
+      }
+    }
+
+    const updatedDoctor = await doctorModel.findByIdAndUpdate(
+      docId,
+      {
+        name,
+        specialty,
+        degree,
+        experience,
+        about,
+        fees: Number(fees),
+        address: parsedAddress,
+      },
+      { new: true },
+    );
+
+    res.json({
+      success: true,
+      message: "Doctor updated successfully",
+      doctor: updatedDoctor,
+    });
+  } catch (error) {
+    console.log(error);
+
+    res.json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export {
+  addDoctor,
+  loginAdmin,
+  allDoctors,
+  appointmentsAdmin,
+  appointmentCancel,
+  adminDashboard,
+  changeAvailability,
+  removeDoctor,
+  getDoctorById,
+  updateDoctor,
+};
 

@@ -92,6 +92,7 @@ const MyAppointments = () => {
       const order = data.order;
 
       // Step 2: Razorpay Checkout
+      console.log("RAZORPAY KEY:", import.meta.env.VITE_RAZORPAY_KEY_ID);
       const options = {
         key: import.meta.env.VITE_RAZORPAY_KEY_ID,
 

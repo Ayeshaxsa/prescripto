@@ -5,7 +5,9 @@ import appointmentModel from "../models/appointmentModel.js";
 // Create Razorpay Order
 const createPaymentOrder = async (req, res) => {
   try {
-    const { appointmentId, userId } = req.body;
+    // const { appointmentId, userId } = req.body;
+    const { appointmentId } = req.body;
+    const userId = req.userId;
 
     // Find appointment
     const appointment = await appointmentModel.findById(appointmentId);
@@ -18,7 +20,7 @@ const createPaymentOrder = async (req, res) => {
     }
 
     // Check appointment belongs to user
-    if (appointment.userId !== userId) {
+    if (appointment.userId.toString() !== userId.toString()) {
       return res.json({
         success: false,
         message: "Unauthorized",
@@ -71,7 +73,15 @@ const verifyPayment = async (req, res) => {
     } = req.body;
 
     const appointment = await appointmentModel.findById(appointmentId);
+    const userId = req.userId;
 
+    if (appointment.userId.toString() !== userId.toString()) {
+      return res.json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+    
     if (!appointment) {
       return res.json({
         success: false,

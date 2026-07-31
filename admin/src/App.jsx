@@ -14,6 +14,7 @@ import { AdminContext } from "./context/AdminContext.jsx";
 import { DoctorContext } from "./context/DoctorContext.jsx";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import EditDoctor from "./pages/Admin/EditDoctor.jsx";
 
 const App = () => {
   const { aToken } = useContext(AdminContext);
@@ -44,6 +45,7 @@ const App = () => {
                 <Route path="/all-appointments" element={<AllAppointments />} />
                 <Route path="/add-doctor" element={<AddDoctor />} />
                 <Route path="/doctor-list" element={<DoctorsList />} />
+                <Route path="/edit-doctor/:id" element={<EditDoctor />} />
               </>
             )}
 
@@ -52,7 +54,10 @@ const App = () => {
               <>
                 <Route path="/" element={<Navigate to="/doctor-dashboard" />} />
                 <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
-                <Route path="/doctor-appointments" element={<DoctorAppointments />} />
+                <Route
+                  path="/doctor-appointments"
+                  element={<DoctorAppointments />}
+                />
                 <Route path="/doctor-profile" element={<DoctorProfile />} />
               </>
             )}

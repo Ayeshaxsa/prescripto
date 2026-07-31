@@ -20,10 +20,10 @@ connectCloudinary();
 app.use(express.json());
 app.use(
   cors({
-    // origin: ["https://prescripto-community-app.vercel.app"],
     origin: [
       "http://localhost:5173",
-      "https://prescripto-community-app.vercel.app"
+      "https://prescripto-community-app.vercel.app",
+      "http://localhost:5174",
     ],
     credentials: true,
   }),
@@ -39,4 +39,4 @@ app.get("/", (req, res) => {
   res.send("API Working Successfully");
 });
 
-app.listen(port, () => console.log(`Server started on port ${port}`));
+app.listen(port, () => console.log(`Server started.`));

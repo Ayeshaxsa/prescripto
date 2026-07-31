@@ -91,6 +91,14 @@ const DoctorContextProvider = (props) => {
   // Get doctor profile details
   const getProfileData = async () => {
     try {
+      const userData = await userModel.findById(userId).select("-password");
+
+      console.log(userData.image);
+
+      res.json({
+        success: true,
+        userData,
+      });
       const { data } = await axios.get(`${backendUrl}/api/doctor/profile`, {
         headers: { dToken },
       });
