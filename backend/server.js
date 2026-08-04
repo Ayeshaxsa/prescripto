@@ -22,7 +22,8 @@ app.use(
   cors({
     origin: [
       "http://localhost:5173",
-      "https://prescripto-community-app.vercel.app",
+      "https://prescripto-ayeshasa.vercel.app/",
+      "https://prescripto-hqmm2a028-ayeshasa.vercel.app/",
       "http://localhost:5174",
     ],
     credentials: true,
