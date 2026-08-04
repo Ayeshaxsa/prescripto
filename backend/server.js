@@ -19,7 +19,10 @@ connectCloudinary();
 // Middlewares
 app.use(
   cors({
-    origin: "https://prescripto-hqmm2a028-ayeshasa.vercel.app",
+    origin: [
+      "https://prescripto-community.vercel.app",
+      "https://prescripto-community-admin.vercel.app",
+    ],
     credentials: true,
   }),
 );
